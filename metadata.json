@@ -1,0 +1,6 @@
+{
+  "name": "APKRunner",
+  "description": "Self-hosted client-side Android APK runner powered by WebAssembly bellum runtime and WebGPU.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

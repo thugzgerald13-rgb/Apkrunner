@@ -1,0 +1,128 @@
+# /docker-compose.yml
+version: "3.9"
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: apkrunner_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    networks:
+      - apkrunner_net
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: apkrunner_web
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.apkrunner.local
+      - NEXT_PUBLIC_BELLUM_WASM_URL=/wasm/bellum.wasm
+    expose:
+      - "3000"
+    depends_on:
+      - api
+    networks:
+      - apkrunner_net
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: apkrunner_api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DATABASE_URL=postgresql://apkrunner:apkrunner_password@postgres:5432/apkrunner_db?schema=public
+      - S3_ENDPOINT=minio
+      - S3_PORT=9000
+      - S3_USE_SSL=false
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin123
+      - S3_BUCKET_APKS=apkrunner-apks
+      - S3_BUCKET_ICONS=apkrunner-icons
+      - JWT_SECRET=super_secret_jwt_key_change_in_production_32chars_min
+      - ENABLE_VIRUS_SCAN=false
+      - CLAMAV_HOST=clamav
+      - CLAMAV_PORT=3310
+    expose:
+      - "4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - apkrunner_net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: apkrunner_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=apkrunner
+      - POSTGRES_PASSWORD=apkrunner_password
+      - POSTGRES_DB=apkrunner_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apkrunner -d apkrunner_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - apkrunner_net
+
+  minio:
+    image: minio/minio:RELEASE.2024-05-10T01-41-38Z
+    container_name: apkrunner_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    volumes:
+      - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - apkrunner_net
+
+  clamav:
+    image: clamav/clamav:stable
+    container_name: apkrunner_clamav
+    restart: unless-stopped
+    profiles:
+      - security
+    expose:
+      - "3310"
+    networks:
+      - apkrunner_net
+
+volumes:
+  caddy_data:
+  caddy_config:
+  postgres_data:
+  minio_data:
+
+networks:
+  apkrunner_net:
+    driver: bridge

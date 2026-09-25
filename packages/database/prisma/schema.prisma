@@ -1,0 +1,71 @@
+// /packages/database/prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  user
+  admin
+}
+
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  name         String?
+  role         Role         @default(user)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  apps         App[]
+  sessions     RunSession[]
+
+  @@map("users")
+}
+
+model App {
+  id          String   @id @default(uuid())
+  name        String
+  packageName String   @unique
+  iconUrl     String?
+  ownerId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  builds      Build[]
+
+  @@map("apps")
+}
+
+model Build {
+  id         String       @id @default(uuid())
+  appId      String
+  version    String
+  fileUrl    String
+  fileSize   Int
+  uploadedAt DateTime     @default(now())
+
+  app        App          @relation(fields: [appId], references: [id], onDelete: Cascade)
+  sessions   RunSession[]
+
+  @@map("builds")
+}
+
+model RunSession {
+  id        String    @id @default(uuid())
+  userId    String
+  buildId   String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  build     Build     @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@map("run_sessions")
+}

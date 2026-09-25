@@ -1,0 +1,16 @@
+# /apps/api/Dockerfile.dev
+FROM node:20-alpine
+
+WORKDIR /app
+RUN apk add --no-cache openssl
+RUN npm install -g pnpm
+
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY packages ./packages
+COPY apps/api/package.json ./apps/api/package.json
+
+RUN pnpm install --filter @apkrunner/api...
+
+EXPOSE 4000
+
+CMD ["pnpm", "--filter", "@apkrunner/api", "dev"]

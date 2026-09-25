@@ -1,0 +1,31 @@
+// /apps/api/package.json
+{
+  "name": "@apkrunner/api",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@apkrunner/shared": "workspace:*",
+    "@hono/node-server": "^1.13.8",
+    "@prisma/client": "^5.22.0",
+    "@trpc/server": "^10.45.2",
+    "app-info-parser": "^1.1.6",
+    "dotenv": "^16.4.7",
+    "hono": "^4.6.14",
+    "jsonwebtoken": "^9.0.2",
+    "minio": "^8.0.4",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.2",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

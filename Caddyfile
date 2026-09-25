@@ -1,0 +1,54 @@
+# /Caddyfile
+{
+    email admin@apkrunner.local
+    local_certs
+}
+
+apkrunner.local, localhost {
+    # 500MB upload limit buffer for large APK files
+    request_body {
+        max_size 500MB
+    }
+
+    # API and tRPC routes routed to Hono API service
+    handle /api/* {
+        reverse_proxy api:4000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    handle /trpc/* {
+        reverse_proxy api:4000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # MinIO direct presigned S3 uploads and downloads
+    handle /storage/* {
+        uri strip_prefix /storage
+        reverse_proxy minio:9000
+    }
+
+    # Frontend Next.js 15 app
+    handle {
+        reverse_proxy web:3000
+    }
+
+    # Security headers
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Cross-Origin-Opener-Policy "same-origin"
+        Cross-Origin-Embedder-Policy "require-corp"
+    }
+
+    log {
+        output stdout
+        format console
+    }
+}
